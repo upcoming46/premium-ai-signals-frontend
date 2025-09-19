@@ -4,7 +4,10 @@ import { createChart } from 'lightweight-charts';
 import axios from 'axios';
 import './App.css';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'https://8001-ik5g5vu1vx54r5httge7h-dec58212.manusvm.computer';
+// Use the backend URL from the environment at build time, falling back to the deployed Render service.  
+// The fallback previously pointed to a temporary demo server; update it to use the Render backend so the app works even
+// when the environment variable isn't injected (e.g. when building locally or during previews).
+const API_BASE = process.env.REACT_APP_API_URL || 'https://premium-ai-signals-backend-y2m1.onrender.com';
 
 const App = () => {
     const [signal, setSignal] = useState(null);
