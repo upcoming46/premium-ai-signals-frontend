@@ -34,6 +34,12 @@ const App = () => {
     const [telegramCooldown, setTelegramCooldown] = useState(60000); // default 1m
     const lastTelegramSentRef = useRef(0);
 
+    // broker API key states for Bybit and Blofin (placeholders for future execution)
+    const [bybitApiKey, setBybitApiKey] = useState('');
+    const [bybitSecret, setBybitSecret] = useState('');
+    const [blofinApiKey, setBlofinApiKey] = useState('');
+    const [blofinSecret, setBlofinSecret] = useState('');
+
     // track trend in price movement for live trends panel
     const [trend, setTrend] = useState(null);
     const prevPriceRef = useRef(null);
@@ -64,20 +70,22 @@ const App = () => {
                 setError(null);
                 const symbol = isOTC ? `${baseAsset}-OTC` : baseAsset;
                 const res = await axios.get(`${API_BASE}/signals/${symbol}?otc=${isOTC}&timeframe=${timeframe}`);
-                setSignal(res.data);
-                if (res.data.status === 'active') {
-                    sendTelegramSignal(res.data);
+                const sig = res.data;
+                setSignal(sig);
+                // Only handle active signals with trading actions
+                if (sig.status === 'active') {
+                    sendTelegramSignal(sig);
+                    setStats(prev => ({ ...prev, totalSignals: prev.totalSignals + 1, wins: prev.wins + 1 }));
                 }
-                // update simple stats counters
-                setStats(prev => ({ ...prev, totalSignals: prev.totalSignals + 1, wins: prev.wins + 1 }));
-
-                // update trend based on price change
-                const priceNum = parseFloat(res.data.price);
-                if (prevPriceRef.current !== null) {
-                    const diff = priceNum - prevPriceRef.current;
-                    setTrend(diff);
+                // update trend based on price change (when price available)
+                if (sig.price) {
+                    const priceNum = parseFloat(sig.price);
+                    if (prevPriceRef.current !== null) {
+                        const diff = priceNum - prevPriceRef.current;
+                        setTrend(diff);
+                    }
+                    prevPriceRef.current = priceNum;
                 }
-                prevPriceRef.current = priceNum;
             } catch (err) {
                 // if backend fails, fall back to demo/mock mode
                 setError('Demo mode - Backend offline');
@@ -204,34 +212,41 @@ const App = () => {
                     {/* signal or analyzing state */}
                     <AnimatePresence>
                         {signal ? (
-                            <motion.div
-                                className="signal"
-                                style={{ background: signal.direction === 'CALL' ? '#26a69a' : '#ef5350' }}
-                                initial={{ opacity: 0, y: 50 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -50 }}
-                            >
-                                <h2>{signal.direction} {(isOTC ? `${baseAsset}-OTC` : baseAsset)}</h2>
-                                <p>Confidence: {signal.confidence}%</p>
-                                <p>Price: {signal.price}</p>
-                                <p>Expiry: {signal.expire}</p>
-                                {/* advanced details */}
-                                {signal.confluence_score !== undefined && (
-                                    <>
-                                        <p>Confluence: {signal.confluence_score}%</p>
-                                        <p>Sentiment: {signal.sentiment} ({signal.sentiment_score}% )</p>
-                                        <p>Pattern: {signal.pattern}</p>
-                                        <p>RSI: {signal.technical?.rsi ?? 'n/a'}</p>
-                                        <p>MACD Diff: {signal.technical?.macd_diff ?? 'n/a'}</p>
-                                        <p>Regime: {signal.technical?.regime ?? 'n/a'}</p>
-                                <p>Win Rate: {signal.performance?.win_rate?.toFixed(1)}%</p>
-                                <p>Total Trades: {signal.performance?.total_trades}</p>
-                                <p>Risk: {signal.risk_pct}%</p>
-                                {signal.session_boost && <p>Session Boost: +{signal.session_boost}%</p>}
-                                    </>
-                                )}
-                                <button onClick={executeSignal}>Execute in Pocket Option</button>
-                            </motion.div>
+                            signal.status === 'active' ? (
+                                <motion.div
+                                    className="signal"
+                                    style={{ background: signal.direction === 'CALL' ? '#26a69a' : '#ef5350' }}
+                                    initial={{ opacity: 0, y: 50 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -50 }}
+                                >
+                                    <h2>{signal.direction} {(isOTC ? `${baseAsset}-OTC` : baseAsset)}</h2>
+                                    <p>Confidence: {signal.confidence}% ({signal.tier})</p>
+                                    <p>Price: {signal.price}</p>
+                                    <p>Expiry: {signal.expire}</p>
+                                    {/* advanced details */}
+                                    {signal.confluence_score !== undefined && (
+                                        <>
+                                            <p>Confluence: {signal.confluence_score}%</p>
+                                            <p>Sentiment: {signal.sentiment} ({signal.sentiment_score}% )</p>
+                                            <p>Pattern: {signal.pattern}</p>
+                                            <p>RSI: {signal.technical?.rsi ?? 'n/a'}</p>
+                                            <p>MACD Diff: {signal.technical?.macd_diff ?? 'n/a'}</p>
+                                            <p>Regime: {signal.technical?.regime ?? 'n/a'}</p>
+                                            <p>Win Rate: {signal.performance?.win_rate?.toFixed(1)}%</p>
+                                            <p>Total Trades: {signal.performance?.total_trades}</p>
+                                            <p>Risk: {signal.risk_pct}%</p>
+                                            {signal.session_boost && <p>Session Boost: +{signal.session_boost}%</p>}
+                                        </>
+                                    )}
+                                    <button onClick={executeSignal}>Execute in Pocket Option</button>
+                                </motion.div>
+                            ) : (
+                                <div className="signal" style={{ background: '#30363d' }}>
+                                    <h2>{signal.message || 'No active signal'}</h2>
+                                    {signal.expires_in && <p>Next signal in {signal.expires_in}s</p>}
+                                </div>
+                            )
                         ) : (
                             <div className="signal"><p>Analyzing...</p></div>
                         )}
@@ -285,6 +300,43 @@ const App = () => {
                         <p>Total Signals: {stats.totalSignals}</p>
                         <p>Win Rate: {stats.winRate}%</p>
                         <p>Avg Conf: {stats.avgConfidence}%</p>
+                    </div>
+
+                    {/* broker API configuration */}
+                    <div className="brokers">
+                        <h3>Broker API Settings</h3>
+                        <div className="brokerForm">
+                            <h4>Bybit</h4>
+                            <input
+                                type="text"
+                                value={bybitApiKey}
+                                onChange={(e) => setBybitApiKey(e.target.value)}
+                                placeholder="Bybit API Key"
+                            />
+                            <input
+                                type="password"
+                                value={bybitSecret}
+                                onChange={(e) => setBybitSecret(e.target.value)}
+                                placeholder="Bybit Secret Key"
+                            />
+                        </div>
+                        <div className="brokerForm">
+                            <h4>Blofin</h4>
+                            <input
+                                type="text"
+                                value={blofinApiKey}
+                                onChange={(e) => setBlofinApiKey(e.target.value)}
+                                placeholder="Blofin API Key"
+                            />
+                        
+                            <input
+                                type="password"
+                                value={blofinSecret}
+                                onChange={(e) => setBlofinSecret(e.target.value)}
+                                placeholder="Blofin Secret Key"
+                            />
+                        </div>
+                        <p style={{ fontSize: '0.8rem', opacity: 0.7 }}>These keys are stored locally and will be used to execute trades in future updates.</p>
                     </div>
 
                 </div>
