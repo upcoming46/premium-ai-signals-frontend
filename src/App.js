@@ -175,6 +175,8 @@ const App = () => {
                 </label>
                 <select value={timeframe} onChange={(e) => setTimeframe(e.target.value)}>
                     <option value="1m">1m</option>
+                    <option value="2m">2m</option>
+                    <option value="3m">3m</option>
                     <option value="5m">5m</option>
                     <option value="15m">15m</option>
                 </select>
@@ -182,6 +184,7 @@ const App = () => {
                     <option value={30000}>Refresh 30s</option>
                     <option value={60000}>Refresh 1m</option>
                     <option value={120000}>Refresh 2m</option>
+                    <option value={180000}>Refresh 3m</option>
                 </select>
                 <select value={telegramCooldown} onChange={(e) => setTelegramCooldown(parseInt(e.target.value))}>
                     <option value={60000}>Notify every 1m</option>
@@ -221,9 +224,10 @@ const App = () => {
                                         <p>RSI: {signal.technical?.rsi ?? 'n/a'}</p>
                                         <p>MACD Diff: {signal.technical?.macd_diff ?? 'n/a'}</p>
                                         <p>Regime: {signal.technical?.regime ?? 'n/a'}</p>
-                                        <p>Win Rate: {signal.performance?.win_rate?.toFixed(1)}%</p>
-                                        <p>Total Trades: {signal.performance?.total_trades}</p>
-                                        {signal.session_boost && <p>Session Boost: +{signal.session_boost}%</p>}
+                                <p>Win Rate: {signal.performance?.win_rate?.toFixed(1)}%</p>
+                                <p>Total Trades: {signal.performance?.total_trades}</p>
+                                <p>Risk: {signal.risk_pct}%</p>
+                                {signal.session_boost && <p>Session Boost: +{signal.session_boost}%</p>}
                                     </>
                                 )}
                                 <button onClick={executeSignal}>Execute in Pocket Option</button>
