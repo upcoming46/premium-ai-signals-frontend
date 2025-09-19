@@ -1,0 +1,74 @@
+.App {
+  background: #0d1117;
+  color: #c9d1d9;
+  min-height: 100vh;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.controls select,
+.controls input,
+.controls button {
+  padding: 8px;
+  border: 1px solid #30363d;
+  background: #161b22;
+  color: #c9d1d9;
+  border-radius: 4px;
+}
+
+.chart {
+  height: 400px;
+  background: #161b22;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.signal {
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.settings {
+  background: #161b22;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.settings input {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  background: #161b22;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .controls {
+    flex-direction: column;
+  }
+  .stats {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
